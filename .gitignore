@@ -1,2 +1,3 @@
 #CONFIGURATION
-settings.py
+*settings.py
+*db.sqlite3
