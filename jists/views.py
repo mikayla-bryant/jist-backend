@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import query
 from django.http.response import HttpResponseRedirect, JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators import csrf
 from rest_framework import generics, permissions, mixins
 from rest_framework.exceptions import ValidationError
@@ -11,8 +11,9 @@ from rest_framework.parsers import JSONParser
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth.decorators import login_required
+from jists import serializers
 from jists.models import Jist, Topic, Vote
-from jists.serializers import JistSerializer, TopicSerializer, VoteSerializer
+from jists.serializers import JistSerializer, TopicsSerializer, VoteSerializer, TopicSerializer
 
 
 @csrf.csrf_exempt
@@ -49,17 +50,17 @@ def logoutuser(request):
 
 class TopicList(generics.ListCreateAPIView):
     queryset = Topic.objects.all()
-    serializer_class = TopicSerializer
+    serializer_class = TopicsSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class TopicUpdate(generics.UpdateAPIView, mixins.RetrieveModelMixin):
+class TopicViewUpdate(generics.RetrieveAPIView):
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'id'
 
-    def get_queryset(self):
-        user = self.request.user
-        topic = Topic.objects.get(pk=self.kwargs['pk'])
-        return Topic.objects.filter(user=user, topic=topic)
+    def get_object(self):
+        id = self.kwargs['pk']
+        return get_object_or_404(Topic, id=id)
 
 class JistList(generics.ListCreateAPIView):
     queryset = Jist.objects.all().order_by('vote')

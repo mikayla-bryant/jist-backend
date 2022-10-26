@@ -1,36 +1,48 @@
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
+from rest_framework.fields import empty
+from rest_framework.generics import get_object_or_404
 from .models import Jist, Topic, Vote
+from jist_backend.settings import GOOGLE_API_KEY
 import requests
 import re
 
 
 class JistSerializer(serializers.ModelSerializer):
-    poster_username = serializers.ReadOnlyField(source='poster.username')
-    poster_id = serializers.ReadOnlyField(source='poster.id') 
+    poster = serializers.ReadOnlyField(source='poster.username')
+    topic = serializers.ReadOnlyField(source='topic.name')
     topic_id = serializers.ReadOnlyField(source='topic.id')
     votes = serializers.SerializerMethodField()
 
     class Meta:
         model = Jist
-        fields = ['id', 'description', 'poster_username', 'poster_id', 'created', 'giphyUrl', 'votes', 'topic', 'topic_id']
+        fields = ['id', 'description', 'poster', 'poster_id','created', 'giphyUrl', 'votes', 'topic', 'topic_id', 'username']
         
     def get_votes(self, jist):
         return Vote.objects.filter(jist=jist).count()
 
-class TopicSerializer(serializers.ModelSerializer):
+class TopicsSerializer(serializers.ModelSerializer):
     creator_username = serializers.ReadOnlyField(source='creator.username')
     creator_id = serializers.ReadOnlyField(source='creator.id')
+
+    class Meta:
+        model = Topic
+        fields = ['id','name', 'created','creator_id', 'creator_username']
+
+   
+class TopicSerializer(serializers.ModelSerializer):
     wikipedia_jist = serializers.SerializerMethodField()
+    youtube_jist = serializers.SerializerMethodField()
     jists = serializers.SerializerMethodField()
 
     class Meta:
         model = Topic
-        fields = ['id','name', 'created', 'jists', 'creator_id', 'creator_username', 'wikipedia_jist']
+        fields = ['id','name', 'created', 'jists','wikipedia_jist', 'youtube_jist']
 
     def get_jists(self, topic):
         return Jist.objects.filter(topic=topic).values()
-    
+
     def get_wikipedia_jist(request, self):
         # Converting Topic Name into URL-friendly format
         name = self.name
@@ -78,7 +90,7 @@ class TopicSerializer(serializers.ModelSerializer):
             return ValidationError("Please be more specific with your topic name. HINT: Try one of these topic names - " + list_of_alternatives)
         # Else if there are less than 3 sentences (but more than 0), return only the first sentence
         elif(len(listresult) < 3):
-            return str(listresult[0]).encode("utf-8").decode("ascii", 'ignore')
+            return str(listresult[0] + ".").encode("utf-8").decode("ascii", 'ignore')
         
         # Create a new array with the first three elements (sentences), join elements together, and return as a string to create a Jist from Wikipedia :)
         else:
@@ -88,7 +100,18 @@ class TopicSerializer(serializers.ModelSerializer):
             p = p.join(new_list) + "."
             return str(p).encode("utf-8").decode('ascii', 'ignore')
 
-
+    def get_youtube_jist(request, self):
+        # Converting Topic Name into URL-friendly format
+        name = self.name
+        new_url = name.split(" ")
+        title = "%20"
+        title = title.join(new_url)
+        response = requests.get('https://www.googleapis.com/youtube/v3/search?key=' + GOOGLE_API_KEY + '&part=snippet&type=video&videoDuration=short&maxResults=1&q='+ title + '%' + '20explanation')
+        result = response.json()
+        if("quota" in str(result)):
+            return "Evn_G5WeIL0"
+        else:
+            return result['items'][0]['id']['videoId']
 
 class VoteSerializer(serializers.ModelSerializer):
     class Meta:

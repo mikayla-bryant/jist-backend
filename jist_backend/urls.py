@@ -23,7 +23,7 @@ urlpatterns = [
     path('api/jists', views.JistList.as_view()),
     path('api/jists/<int:pk>/vote', views.VoteCreate.as_view()),
     path('api/topics', views.TopicList.as_view()),
-    path('api/topics/<int:pk>/update', views.TopicUpdate.as_view()),
+    path('api/topics/<int:pk>', views.TopicViewUpdate.as_view()),
     path('api-auth/', include('rest_framework.urls')),
 
     #Auth

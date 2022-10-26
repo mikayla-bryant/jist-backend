@@ -1,1 +1,1 @@
-# jist-backend
+# Jist Backend

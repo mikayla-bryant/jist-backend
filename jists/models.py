@@ -19,6 +19,7 @@ class Jist(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     topic = models.ForeignKey(Topic, on_delete=CASCADE, null=True)
     giphyUrl = models.URLField()
+    username = models.CharField(max_length=20, null=True)
 
 class Vote(models.Model):
     voter = models.ForeignKey(User, on_delete=models.CASCADE)
